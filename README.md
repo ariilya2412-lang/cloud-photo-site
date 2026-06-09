@@ -1,6 +1,6 @@
-# Cloud Photo Site
+# Cloud Gallery Site
 
-Simple static page that displays one image from Yandex Object Storage.
+Simple static gallery that displays images from Yandex Object Storage.
 
 ## Local preview
 
@@ -13,6 +13,14 @@ Open:
 
 ```text
 http://localhost:4174
+```
+
+## Photo list
+
+The gallery reads `photos.json`. Each item points to:
+
+```text
+https://storage.yandexcloud.net/lol/<file-name>
 ```
 
 ## GitHub Pages

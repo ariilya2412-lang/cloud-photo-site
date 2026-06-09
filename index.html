@@ -4,34 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#111111" />
-    <title>Cloud Photo</title>
+    <title>Cloud Gallery</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <main class="page">
-      <section class="viewer" aria-label="Cloud photo viewer">
-        <div class="topbar">
-          <div>
-            <span>Yandex Cloud</span>
-            <h1>Cloud Photo</h1>
-          </div>
-          <a
-            class="open-link"
-            href="https://storage.yandexcloud.net/lol/%D0%A1%D0%BD%D0%B8%D0%BC%D0%BE%D0%BA%20%D1%8D%D0%BA%D1%80%D0%B0%D0%BD%D0%B0%202026-04-12%20194409.png"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Open
-          </a>
+      <header class="topbar">
+        <div>
+          <span>Yandex Object Storage</span>
+          <h1>Cloud Gallery</h1>
         </div>
+        <strong id="photo-count">Loading...</strong>
+      </header>
 
-        <figure class="photo-frame">
-          <img
-            src="https://storage.yandexcloud.net/lol/%D0%A1%D0%BD%D0%B8%D0%BC%D0%BE%D0%BA%20%D1%8D%D0%BA%D1%80%D0%B0%D0%BD%D0%B0%202026-04-12%20194409.png"
-            alt="Cloud-hosted screenshot"
-          />
-        </figure>
-      </section>
+      <section class="gallery" id="gallery" aria-label="Cloud photo gallery"></section>
     </main>
+
+    <template id="photo-template">
+      <a class="photo-card" target="_blank" rel="noreferrer">
+        <img loading="lazy" decoding="async" alt="" />
+        <span></span>
+      </a>
+    </template>
+
+    <script src="./app.js"></script>
   </body>
 </html>
