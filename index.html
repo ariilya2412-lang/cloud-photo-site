@@ -178,7 +178,7 @@
 
     .toolbar {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto auto;
+      grid-template-columns: minmax(0, 1fr) auto auto auto;
       gap: 8px;
       margin-top: 8px;
     }
@@ -227,6 +227,12 @@
 
     .tool-button:active {
       background: var(--control);
+    }
+
+    .tool-button.active {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
     }
 
     .content {
@@ -575,6 +581,7 @@
       <label class="search">
         <input id="searchInput" type="search" placeholder="Поиск" autocomplete="off" aria-label="Поиск фотографий">
       </label>
+      <button class="tool-button" id="mixButton" type="button" aria-label="Перемешать все фото" title="Случайные 50 фото">⤨</button>
       <button class="tool-button" id="sortButton" type="button" aria-label="Изменить сортировку" title="Сортировка">⇅</button>
       <button class="tool-button" id="gridButton" type="button" aria-label="Изменить размер сетки" title="Размер сетки">▦</button>
     </div>
@@ -635,6 +642,8 @@
       "use strict";
 
       const API = "https://functions.yandexcloud.net/d4ecqr4bqsf8ndkrh1qk";
+      const MIX_FOLDER = "__random_mix__";
+      const MIX_LIMIT = 50;
       const IMAGE_EXTENSIONS = /\.(avif|gif|jpe?g|png|webp)$/i;
       const GRID_SIZES = ["medium", "small", "large"];
       const SORT_MODES = ["default", "name-asc", "name-desc"];
@@ -649,6 +658,7 @@
         subtitle: document.getElementById("subtitle"),
         folders: document.getElementById("folders"),
         search: document.getElementById("searchInput"),
+        mix: document.getElementById("mixButton"),
         sort: document.getElementById("sortButton"),
         grid: document.getElementById("gridButton"),
         theme: document.getElementById("themeButton"),
@@ -676,6 +686,7 @@
       const state = {
         folders: new Map(),
         activeFolder: "",
+        mixPhotos: [],
         visiblePhotos: [],
         search: "",
         sort: localStorage.getItem("gallerySort") || "default",
@@ -768,7 +779,9 @@
       };
 
       const getVisiblePhotos = () => {
-        const photos = [...(state.folders.get(state.activeFolder) || [])];
+        const photos = state.activeFolder === MIX_FOLDER
+          ? [...state.mixPhotos]
+          : [...(state.folders.get(state.activeFolder) || [])];
         const query = state.search.toLocaleLowerCase("ru");
         let result = query
           ? photos.filter(photo => photo.name.toLocaleLowerCase("ru").includes(query))
@@ -793,10 +806,14 @@
       const renderPhotos = () => {
         state.visiblePhotos = getVisiblePhotos();
         elements.photoGrid.replaceChildren();
-        elements.title.textContent =
-          state.activeFolder === "Без папки" ? "Галерея" : `Папка ${state.activeFolder}`;
+        elements.title.textContent = state.activeFolder === MIX_FOLDER
+          ? "Случайные 50"
+          : state.activeFolder === "Без папки"
+            ? "Галерея"
+            : `Папка ${state.activeFolder}`;
         elements.subtitle.textContent =
           `${state.visiblePhotos.length} ${state.visiblePhotos.length === 1 ? "фото" : "фото"}`;
+        elements.mix.classList.toggle("active", state.activeFolder === MIX_FOLDER);
 
         if (!state.visiblePhotos.length) {
           elements.emptyText.textContent = state.search
@@ -849,10 +866,34 @@
       const selectFolder = folder => {
         if (!state.folders.has(folder)) return;
         state.activeFolder = folder;
+        state.mixPhotos = [];
         localStorage.setItem("galleryFolder", folder);
         renderFolderButtons();
         renderPhotos();
         window.scrollTo({ top: 0, behavior: "instant" });
+      };
+
+      const createRandomMix = () => {
+        const allPhotos = [...state.folders.values()].flat();
+        if (!allPhotos.length) {
+          showToast("Фотографии еще загружаются");
+          return;
+        }
+        const count = Math.min(MIX_LIMIT, allPhotos.length);
+
+        for (let index = 0; index < count; index += 1) {
+          const randomIndex = index + Math.floor(Math.random() * (allPhotos.length - index));
+          [allPhotos[index], allPhotos[randomIndex]] = [allPhotos[randomIndex], allPhotos[index]];
+        }
+
+        state.mixPhotos = allPhotos.slice(0, count);
+        state.activeFolder = MIX_FOLDER;
+        state.search = "";
+        elements.search.value = "";
+        renderFolderButtons();
+        renderPhotos();
+        window.scrollTo({ top: 0, behavior: "instant" });
+        showToast(`Перемешано: ${count} фото`);
       };
 
       const loadGallery = async () => {
@@ -1032,6 +1073,8 @@
         state.search = event.target.value.trim();
         renderPhotos();
       });
+
+      elements.mix.addEventListener("click", createRandomMix);
 
       elements.sort.addEventListener("click", () => {
         const index = SORT_MODES.indexOf(state.sort);
