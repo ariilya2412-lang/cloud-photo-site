@@ -1,33 +1,1299 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#111111" />
-    <title>Cloud Gallery</title>
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body>
-    <main class="page">
-      <header class="topbar">
-        <div>
-          <span>Yandex Object Storage</span>
-          <h1>Cloud Gallery</h1>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gallery New</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="preload" href="https://functions.yandexcloud.net/d4ecqr4bqsf8ndkrh1qk" as="fetch" crossorigin="anonymous">
+  <style>
+    :root {
+      --bg: #0d0d10;
+      --surface: #16161c;
+      --surface2: #1e1e26;
+      --surface3: #26262f;
+      --accent: #7c6bff;
+      --accent2: #ff6b6b;
+      --gold: #f0c060;
+      --text: #e8e8f0;
+      --muted: #6a6a80;
+      --border: rgba(255,255,255,0.07);
+      --glass: rgba(255,255,255,0.03);
+      --shadow: 0 20px 60px rgba(0,0,0,0.5);
+      --r: 14px;
+      --r-sm: 8px;
+    }
+    body.light {
+      --bg: #f0f0f5;
+      --surface: #ffffff;
+      --surface2: #f5f5fa;
+      --surface3: #eaeaf2;
+      --text: #1a1a2e;
+      --muted: #7a7a90;
+      --border: rgba(0,0,0,0.07);
+      --glass: rgba(0,0,0,0.02);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+    }
+
+    /* ── WELCOME ── */
+    #welcome {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: #08080b;
+      overflow: hidden;
+    }
+    #welcome-bg {
+      position: absolute; inset: 0;
+      background-size: cover; background-position: center;
+      opacity: 0.35;
+      filter: blur(5px) saturate(1.15);
+      transform: scale(1.08);
+      transition: opacity 1s ease;
+    }
+    #welcome-vignette {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at center, transparent 20%, #08080b 80%);
+    }
+    .welcome-content {
+      position: relative; z-index: 1;
+      text-align: center; padding: 24px;
+      animation: welcomeFadeIn 0.9s ease both;
+    }
+    .welcome-content h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(32px, 8vw, 64px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+    .welcome-content p {
+      color: rgba(255,255,255,0.45);
+      font-size: 15px; margin-bottom: 32px;
+      letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500;
+    }
+    #startBtn {
+      padding: 14px 36px; border-radius: 50px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.08);
+      color: #fff; font-family: 'DM Sans', sans-serif;
+      font-size: 15px; font-weight: 500;
+      cursor: pointer; letter-spacing: 0.04em;
+      backdrop-filter: blur(12px);
+      transition: all 0.25s ease;
+    }
+    #startBtn:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      transform: scale(1.04);
+      box-shadow: 0 8px 32px rgba(124,107,255,0.4);
+    }
+    @keyframes welcomeFadeIn {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── COVER FLOW ── */
+    #coverFlow {
+      position: fixed; inset: 0; z-index: 999;
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: var(--bg);
+      padding: 20px;
+    }
+    #coverFlow h2 {
+      font-family: 'Syne', sans-serif; font-weight: 700;
+      font-size: 22px; margin-bottom: 24px;
+      color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    #flowContainer {
+      display: flex; gap: 14px;
+      max-width: 960px; width: 100%;
+      overflow-x: auto; padding: 20px 8px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    #flowContainer::-webkit-scrollbar { display: none; }
+    .flowItem {
+      flex: 0 0 160px; height: 160px;
+      border-radius: var(--r);
+      overflow: hidden; cursor: pointer;
+      scroll-snap-align: center;
+      position: relative;
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease;
+      border: 1px solid var(--border);
+    }
+    .flowItem:hover { transform: translateY(-8px) scale(1.04); box-shadow: var(--shadow); }
+    .flowItem img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .flowItem .folder-badge {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 50%);
+      display: flex; flex-direction: column;
+      justify-content: flex-end; padding: 12px;
+    }
+    .flowItem .folder-name {
+      font-family: 'Syne', sans-serif; font-size: 13px;
+      font-weight: 700; color: #fff; letter-spacing: 0.04em;
+    }
+    .flowItem .folder-count {
+      font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 2px;
+    }
+    #coverFlowControls { display: flex; gap: 10px; margin-top: 20px; }
+    #coverFlowControls button, #continueBtn {
+      padding: 10px 18px; border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text);
+      font-family: 'DM Sans', sans-serif; font-size: 14px;
+      cursor: pointer; transition: all 0.2s ease;
+    }
+    #continueBtn { background: var(--accent); border-color: var(--accent); color: #fff; }
+    #continueBtn:hover { box-shadow: 0 4px 20px rgba(124,107,255,0.4); transform: scale(1.03); }
+    #coverFlowControls button:hover { background: var(--surface3); }
+
+    /* ── HEADER ── */
+    header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 800;
+      padding: 10px 14px;
+      background: rgba(13,13,16,0.85);
+      backdrop-filter: blur(16px) saturate(1.5);
+      border-bottom: 1px solid var(--border);
+      display: none; flex-wrap: wrap; gap: 8px; align-items: center;
+    }
+    body.light header { background: rgba(240,240,245,0.88); }
+    .header-row1 { display: flex; gap: 8px; align-items: center; width: 100%; flex-wrap: wrap; }
+    .header-row2 { display: flex; gap: 8px; align-items: center; width: 100%; }
+    #searchWrap {
+      flex: 1; position: relative; min-width: 150px;
+    }
+    #searchInput {
+      width: 100%; padding: 8px 12px 8px 34px;
+      border-radius: var(--r-sm); border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text);
+      font-family: 'DM Sans', sans-serif; font-size: 13px;
+      outline: none; transition: border-color 0.2s;
+    }
+    #searchInput:focus { border-color: var(--accent); }
+    #searchInput::placeholder { color: var(--muted); }
+    .search-icon {
+      position: absolute; left: 10px; top: 50%;
+      transform: translateY(-50%); color: var(--muted); font-size: 14px; pointer-events: none;
+    }
+    select, .hbtn {
+      padding: 8px 12px; border-radius: var(--r-sm);
+      border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text);
+      font-family: 'DM Sans', sans-serif; font-size: 13px;
+      cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
+    }
+    .hbtn:hover { background: var(--surface3); }
+    .hbtn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    input[type="file"] { display: none; }
+    .grid-size-btns { display: flex; border: 1px solid var(--border); border-radius: var(--r-sm); overflow: hidden; }
+    .grid-size-btns button {
+      padding: 8px 10px; background: var(--surface2);
+      border: none; color: var(--muted); cursor: pointer;
+      font-size: 13px; transition: all 0.2s;
+    }
+    .grid-size-btns button.active { background: var(--accent); color: #fff; }
+
+    /* ── GRID ── */
+    .grid {
+      padding: 82px 10px 24px;
+      display: grid; gap: 8px;
+      transition: opacity 0.4s ease;
+    }
+    .grid.size-sm { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+    .grid.size-md { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+    .grid.size-lg { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+    .grid.fade-out { opacity: 0; }
+    .grid-item {
+      border-radius: var(--r-sm); overflow: hidden;
+      position: relative; aspect-ratio: 1/1;
+      cursor: pointer; background: var(--surface2);
+      touch-action: manipulation;
+      opacity: 0; transform: scale(0.94);
+      animation: itemIn 0.4s ease forwards;
+      animation-delay: calc(var(--i, 0) * 0.03s);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      border: 2px solid transparent;
+    }
+    .grid-item:hover { transform: scale(1.03); box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+    .grid-item.selected { border-color: var(--accent); }
+    .grid-item.selected::before {
+      content: '✓'; position: absolute;
+      top: 6px; left: 6px; z-index: 5;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+    }
+    @keyframes itemIn {
+      to { opacity: 1; transform: scale(1); }
+    }
+    .grid-item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.35s ease; }
+    .grid-item:hover img { transform: scale(1.08); }
+    .grid-item .item-overlay { display: none; }
+    .item-caption-text { display: none; }
+    .like-dot { display: none; }
+
+    /* ── BULK BAR ── */
+    #bulkBar {
+      display: none; position: fixed; bottom: 20px;
+      left: 50%; transform: translateX(-50%);
+      z-index: 850; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 50px;
+      padding: 10px 20px; gap: 12px;
+      align-items: center; box-shadow: var(--shadow);
+      animation: slideUp 0.3s ease;
+    }
+    #bulkBar.visible { display: flex; }
+    @keyframes slideUp { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+    #bulkBar span { font-size: 13px; color: var(--muted); }
+    .bulk-btn {
+      padding: 7px 14px; border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text);
+      font-size: 13px; cursor: pointer; transition: all 0.2s;
+    }
+    .bulk-btn:hover { background: var(--surface3); }
+    .bulk-btn.danger { background: rgba(255,107,107,0.15); border-color: var(--accent2); color: var(--accent2); }
+
+    /* ── VIEWER ── */
+    #viewer {
+      display: none; position: fixed; inset: 0; z-index: 1000;
+      background: rgba(5,5,8,0.97);
+      flex-direction: column; align-items: center; justify-content: center;
+      overscroll-behavior: contain;
+    }
+    #viewer.visible { animation: fadeIn 0.35s ease forwards; }
+    #viewer.closing { animation: fadeOut 0.3s ease forwards; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+    /* top bar */
+    #viewerTopBar {
+      position: absolute; top: 0; left: 0; right: 0;
+      padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 14px;
+      display: flex; align-items: center; gap: 10px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+      z-index: 10;
+    }
+    #viewerClose {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.08); color: #fff;
+      font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(8px); transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    #viewerClose:hover { background: var(--accent2); border-color: var(--accent2); transform: scale(1.1); }
+    #viewerTitle {
+      flex: 1; font-size: 13px; color: rgba(255,255,255,0.55);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .viewer-top-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.08); color: #fff;
+      font-size: 16px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(8px); transition: all 0.2s; flex-shrink: 0;
+    }
+    .viewer-top-btn:hover { background: rgba(255,255,255,0.18); transform: scale(1.1); }
+    .viewer-top-btn.liked { background: rgba(255,107,107,0.3); border-color: var(--accent2); }
+    #viewerTitle, #viewerCaption, #captionInputWrapper, #likeBtn, #bulkLike,
+    #bulkDelete, #uploadBtn, .ctx-item[data-a="like"], .ctx-item[data-a="delete"],
+    .sort-chip[data-sort="liked"], .folder-badge {
+      display: none !important;
+    }
+
+    /* image */
+    #viewerImgWrap {
+      width: 100%; height: 100%; display: flex;
+      align-items: center; justify-content: center;
+      overflow: hidden; touch-action: none;
+    }
+    #viewerImg {
+      max-width: 92vw; max-height: 78vh;
+      border-radius: var(--r-sm); object-fit: contain;
+      transition: transform 0.2s ease;
+      user-select: none; -webkit-user-drag: none;
+      will-change: transform;
+    }
+
+    /* bottom bar */
+    #viewerBottomBar {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: 14px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+      background: linear-gradient(to top, rgba(0,0,0,0.75), transparent);
+      z-index: 10;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    /* autoplay progress */
+    #apProgress {
+      width: 100%; height: 2px; background: rgba(255,255,255,0.15);
+      border-radius: 2px; display: none; overflow: hidden;
+    }
+    #apBar {
+      height: 100%; background: var(--accent); width: 0%;
+      transition: none;
+    }
+    #viewerControls {
+      display: flex; align-items: center; gap: 8px;
+    }
+    #prevBtn, #nextBtn {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.08); color: #fff;
+      font-size: 18px; cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(8px); transition: all 0.2s;
+    }
+    #prevBtn:hover, #nextBtn:hover { background: rgba(255,255,255,0.18); }
+    #viewerMid { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    #counter { font-size: 13px; color: rgba(255,255,255,0.5); font-weight: 500; }
+    #viewerCaption {
+      font-size: 13px; color: rgba(255,255,255,0.75);
+      text-align: center; min-height: 18px;
+      cursor: pointer; transition: color 0.2s;
+    }
+    #viewerCaption:hover { color: #fff; }
+    #viewerCaption.editing { display: none; }
+    #captionInputWrapper { display: none; }
+    #captionInputWrapper.visible { display: flex; gap: 6px; align-items: center; }
+    #captionInput {
+      flex: 1; padding: 6px 10px; border-radius: var(--r-sm);
+      border: 1px solid var(--accent);
+      background: rgba(255,255,255,0.1); color: #fff;
+      font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none;
+    }
+    #captionSaveBtn {
+      padding: 6px 12px; border-radius: var(--r-sm);
+      background: var(--accent); border: none; color: #fff;
+      font-size: 12px; cursor: pointer;
+    }
+    .zoom-btns { display: flex; gap: 6px; }
+    .zoom-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06); color: #fff;
+      font-size: 16px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+    }
+    .zoom-btn:hover { background: rgba(255,255,255,0.16); }
+
+    /* side arrows desktop */
+    #sideLeft, #sideRight {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 48px; height: 80px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05); color: #fff;
+      font-size: 22px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(8px); transition: all 0.2s; z-index: 5;
+    }
+    #sideLeft { left: 14px; }
+    #sideRight { right: 14px; }
+    #sideLeft:hover, #sideRight:hover { background: rgba(255,255,255,0.14); }
+    @media (max-width: 600px) { #sideLeft, #sideRight { display: none; } }
+
+    /* ── CONTEXT MENU ── */
+    .ctx-menu {
+      position: fixed; z-index: 2000;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r-sm); box-shadow: var(--shadow);
+      overflow: hidden; min-width: 150px;
+      animation: ctxIn 0.15s ease;
+    }
+    @keyframes ctxIn { from { opacity: 0; transform: scale(0.93); } to { opacity: 1; transform: scale(1); } }
+    .ctx-item {
+      padding: 10px 16px; cursor: pointer; font-size: 13px;
+      display: flex; align-items: center; gap: 8px; transition: background 0.15s;
+    }
+    .ctx-item:hover { background: var(--surface3); }
+    .ctx-item.danger { color: var(--accent2); }
+    .ctx-sep { height: 1px; background: var(--border); margin: 2px 0; }
+
+    /* ── SORT/FILTER BAR ── */
+    #sortBar {
+      display: none; padding: 0 10px 8px;
+      margin-top: -2px;
+      flex-wrap: wrap; gap: 6px;
+    }
+    #sortBar.visible { display: flex; }
+    .sort-chip {
+      padding: 5px 12px; border-radius: 20px; font-size: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface2); color: var(--muted);
+      cursor: pointer; transition: all 0.2s; font-weight: 500;
+    }
+    .sort-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      padding: 10px 20px; border-radius: 20px; z-index: 9998;
+      font-size: 13px; font-weight: 500; pointer-events: none;
+      display: flex; align-items: center; gap: 8px; white-space: nowrap;
+      animation: toastAnim 2.5s ease forwards;
+    }
+    .toast.ok { background: rgba(60,200,100,0.9); color: #fff; }
+    .toast.err { background: rgba(255,80,80,0.9); color: #fff; }
+    @keyframes toastAnim {
+      0% { opacity: 0; transform: translate(-50%, 12px); }
+      12% { opacity: 1; transform: translate(-50%, 0); }
+      80% { opacity: 1; }
+      100% { opacity: 0; transform: translate(-50%, -6px); }
+    }
+
+    /* ── LOADER ── */
+    #loader {
+      display: none; position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%); z-index: 9999;
+      width: 36px; height: 36px;
+    }
+    #loader::after {
+      content: ''; display: block; width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      grid-column: 1 / -1; display: flex;
+      flex-direction: column; align-items: center;
+      padding: 60px 20px; color: var(--muted);
+    }
+    .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+    .empty-state p { font-size: 15px; }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 4px; }
+
+    @media (max-width: 720px) {
+      header {
+        padding: 8px 10px;
+        gap: 6px;
+      }
+      .header-row1, .header-row2 { gap: 6px; }
+      #searchWrap { min-width: 100%; order: 2; }
+      select, .hbtn { min-height: 40px; padding: 8px 10px; }
+      .grid {
+        padding: 116px 6px 24px;
+        gap: 6px;
+      }
+      .grid.size-sm { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .grid.size-md { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid.size-lg { grid-template-columns: 1fr; }
+      .grid-item:hover { transform: none; box-shadow: none; }
+      .grid-item:hover img { transform: none; }
+      .grid-item .item-overlay { opacity: 1; background: linear-gradient(to top, rgba(0,0,0,0.45), transparent 45%); }
+      #viewerTopBar { gap: 6px; padding-left: 10px; padding-right: 10px; }
+      #viewerClose, .viewer-top-btn { width: 42px; height: 42px; }
+      #viewerTitle { font-size: 12px; }
+      #viewerBottomBar { padding-left: 10px; padding-right: 10px; }
+      #viewerControls { gap: 6px; }
+      #prevBtn, #nextBtn { width: 44px; height: 44px; }
+      .zoom-btns { justify-content: center; }
+      .zoom-btn { width: 42px; height: 42px; }
+      #bulkBar {
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+        width: calc(100vw - 20px);
+        justify-content: space-between;
+        border-radius: 16px;
+        padding: 10px;
+      }
+      .bulk-btn { padding: 8px 10px; }
+    }
+
+    @media (max-width: 480px) {
+      .flowItem { flex: 0 0 120px; height: 120px; }
+      #viewerImg { max-width: 100vw; max-height: 68vh; border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- WELCOME -->
+<div id="welcome">
+  <div id="welcome-bg"></div>
+  <div id="welcome-vignette"></div>
+  <div class="welcome-content">
+    <h1>Gallery</h1>
+    <p>Your personal photo library</p>
+    <button id="startBtn">Open Gallery</button>
+  </div>
+</div>
+
+<!-- COVER FLOW -->
+<div id="coverFlow">
+  <h2>Choose Folder</h2>
+  <div id="flowContainer"></div>
+  <div id="coverFlowControls">
+    <button id="flowPrev">❮</button>
+    <button id="continueBtn">First Folder →</button>
+    <button id="flowNext">❯</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header id="mainHeader">
+  <div class="header-row1">
+    <div id="searchWrap">
+      <span class="search-icon">🔍</span>
+      <input id="searchInput" type="search" placeholder="Search files…" autocomplete="off">
+    </div>
+    <select id="folderSelect"></select>
+    <button class="hbtn" id="uploadBtn">📤</button>
+    <input id="fileInput" type="file" multiple accept="image/*">
+    <button class="hbtn" id="themeToggle" title="Theme">🌙</button>
+    <button class="hbtn" id="selectModeBtn" title="Select">☑</button>
+  </div>
+  <div class="header-row2" id="headerRow2">
+    <div class="grid-size-btns">
+      <button data-size="sm" title="Small">⊞</button>
+      <button data-size="md" class="active" title="Medium">▦</button>
+      <button data-size="lg" title="Large">□</button>
+    </div>
+    <button class="hbtn" id="sortToggle">Sort ▾</button>
+    <button class="hbtn" id="shuffleBtn">🔀 Mix</button>
+    <button class="hbtn" id="mixAllBtn">🌐 Mix All</button>
+  </div>
+</header>
+
+<!-- SORT BAR -->
+<div id="sortBar">
+  <div class="sort-chip active" data-sort="default">Default</div>
+  <div class="sort-chip" data-sort="name">Name A→Z</div>
+  <div class="sort-chip" data-sort="name-desc">Name Z→A</div>
+  <div class="sort-chip" data-sort="liked">Liked First</div>
+</div>
+
+<!-- PHOTO GRID -->
+<div class="grid size-md" id="photoGrid"></div>
+
+<!-- BULK BAR -->
+<div id="bulkBar">
+  <span id="bulkCount">0 selected</span>
+  <button class="bulk-btn" id="bulkLike">❤ Like all</button>
+  <button class="bulk-btn danger" id="bulkDelete">🗑 Delete</button>
+  <button class="bulk-btn" id="bulkClear">✕ Cancel</button>
+</div>
+
+<!-- VIEWER -->
+<div id="viewer">
+  <!-- Top bar -->
+  <div id="viewerTopBar">
+    <button id="viewerClose">✕</button>
+    <span id="viewerTitle"></span>
+    <button class="viewer-top-btn" id="autoPlayBtn" title="Auto-play">▶</button>
+    <button class="viewer-top-btn" id="fullscreenBtn" title="Fullscreen">⛶</button>
+    <button class="viewer-top-btn" id="downloadBtn" title="Download">⬇</button>
+    <button class="viewer-top-btn" id="likeBtn" title="Like">♡</button>
+  </div>
+
+  <!-- Image -->
+  <div id="viewerImgWrap">
+    <img id="viewerImg" src="" alt="">
+  </div>
+
+  <!-- Side arrows -->
+  <button id="sideLeft">❮</button>
+  <button id="sideRight">❯</button>
+
+  <!-- Bottom bar -->
+  <div id="viewerBottomBar">
+    <div id="apProgress"><div id="apBar"></div></div>
+    <div id="viewerControls">
+      <button id="prevBtn">❮</button>
+      <div id="viewerMid">
+        <div id="counter">0/0</div>
+        <div id="viewerCaption" title="Click to edit caption"></div>
+        <div id="captionInputWrapper">
+          <input id="captionInput" type="text" placeholder="Add caption…" maxlength="120">
+          <button id="captionSaveBtn">Save</button>
         </div>
-        <strong id="photo-count">Loading...</strong>
-      </header>
+      </div>
+      <button id="nextBtn">❯</button>
+    </div>
+    <div class="zoom-btns">
+      <button class="zoom-btn" id="zoomOut">−</button>
+      <button class="zoom-btn" id="zoomReset">⊙</button>
+      <button class="zoom-btn" id="zoomIn">+</button>
+    </div>
+  </div>
+</div>
 
-      <section class="gallery" id="gallery" aria-label="Cloud photo gallery"></section>
-    </main>
+<!-- CONTEXT MENU -->
+<div class="ctx-menu" id="ctxMenu" style="display:none">
+  <div class="ctx-item" data-a="view">👁 View</div>
+  <div class="ctx-item" data-a="like">♡ Like</div>
+  <div class="ctx-item" data-a="download">⬇ Download</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" data-a="delete">🗑 Delete</div>
+</div>
 
-    <template id="photo-template">
-      <a class="photo-card" target="_blank" rel="noreferrer">
-        <img loading="lazy" decoding="async" alt="" />
-        <span></span>
-      </a>
-    </template>
+<div id="loader"></div>
 
-    <script src="./config.js"></script>
-    <script src="./app.js"></script>
-  </body>
+<script>
+(() => {
+  const API = 'https://functions.yandexcloud.net/d4ecqr4bqsf8ndkrh1qk';
+  const PLACEHOLDER = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><rect width="100%" height="100%" fill="#1a1a22"/><text x="50%" y="50%" fill="#444" font-size="18" font-family="sans-serif" dominant-baseline="middle" text-anchor="middle">No image</text></svg>`
+  );
+  const MAX_MIX = 150;
+  const FOLDER_COLORS = ['#1e2a4a','#1e3a2a','#3a1e3a','#3a2a1a','#1a2e3a','#2a1a3a'];
+
+  const st = {
+    folders: {},
+    folder: null,
+    files: [],
+    idx: 0,
+    likes: {},
+    captions: JSON.parse(localStorage.getItem('captions_v2') || '{}'),
+    favCache: JSON.parse(localStorage.getItem('favCache') || '{}'),
+    imageScale: 1,
+    imgDx: 0, imgDy: 0,
+    touchStart: 0,
+    pinchDist: 0,
+    pinchScale: 1,
+    cacheVersion: Date.now(),
+    autoTimer: null,
+    apInterval: null,
+    apStart: 0,
+    AP_DUR: 4000,
+    selectMode: false,
+    selected: new Set(),
+    sortMode: 'default',
+    searchQ: '',
+    gridSize: 'md'
+  };
+
+  const $ = id => document.getElementById(id);
+  const el = (tag, cls) => { const e = document.createElement(tag); if (cls) e.className = cls; return e; };
+
+  /* ─ helpers ─ */
+  const filePath = item => item.subfolder ? `${item.subfolder}/${item.file}` : item.file;
+  const imgId = item => `${item.folder}_${filePath(item).replace(/\//g,'__')}`;
+  const urlPath = path => String(path).split('/').map(encodeURIComponent).join('/');
+  const imageWidthFor = kind => {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (kind === 'grid') return Math.max(360, Math.round(Math.min(window.innerWidth, 900) * dpr));
+    if (kind === 'cover') return Math.max(480, Math.round(Math.min(window.innerWidth, 1100) * dpr));
+    if (kind === 'viewer') return Math.max(1280, Math.round(Math.min(window.innerWidth * dpr * 1.4, 2200)));
+    return null;
+  };
+  const imgUrl = (item) => {
+    if (!item.file) return PLACEHOLDER;
+    return `${API}?file=${encodeURIComponent(filePath(item))}`;
+  };
+  const toast = (msg, type='ok') => {
+    const t = el('div', `toast ${type}`);
+    t.textContent = (type==='ok'?'✓ ':'⚠ ') + msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2600);
+  };
+  const showLoader = v => $('loader').style.display = v ? 'block' : 'none';
+  const applyGridSize = size => {
+    const g = $('photoGrid');
+    g.className = g.className.replace(/size-\w+/, '') + ` size-${size}`;
+  };
+  const setWelcomeBackground = () => {
+    const firstFolder = Object.keys(st.folders)[0];
+    const firstFile = firstFolder ? st.folders[firstFolder]?.[0] : null;
+    if (!firstFile) return;
+    const img = new Image();
+    img.src = `${API}?file=${encodeURIComponent(firstFile)}`;
+    img.onload = () => { $('welcome-bg').style.backgroundImage = `url('${img.src}')`; };
+  };
+
+  /* ─ WELCOME ─ */
+  $('startBtn').addEventListener('click', async () => {
+    await loadFolders();
+    setWelcomeBackground();
+    $('welcome').style.display = 'none';
+    buildCoverFlow();
+    $('coverFlow').style.display = 'flex';
+  });
+
+  /* ─ FOLDERS ─ */
+  const loadFolders = async () => {
+    showLoader(true);
+    try {
+      const r = await fetch(API, { cache:'no-store' });
+      if (!r.ok) throw new Error(r.status);
+      const files = await r.json();
+      st.folders = { "1": files.map(item => item.key) };
+    } catch { st.folders = { "1":[] }; }
+    finally { showLoader(false); }
+  };
+
+  const buildCoverFlow = () => {
+    const fc = $('flowContainer');
+    fc.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    Object.entries(st.folders).forEach(([folder, files], idx) => {
+      const cover = files?.[0];
+      const div = el('div', 'flowItem');
+      div.setAttribute('tabindex', '0');
+      div.setAttribute('aria-label', `Folder ${folder}`);
+      div.style.background = FOLDER_COLORS[idx % FOLDER_COLORS.length];
+      const i = el('img');
+      i.alt = `Folder ${folder}`;
+      i.dataset.src = cover ? `${API}?file=${encodeURIComponent(cover)}` : PLACEHOLDER;
+      i.onerror = () => i.src = PLACEHOLDER;
+      div.appendChild(i);
+      const open = () => { st.folder = folder; showMainGallery(folder); };
+      div.addEventListener('click', open);
+      div.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); open(); } });
+      frag.appendChild(div);
+    });
+    fc.appendChild(frag);
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) { const i = e.target; i.src = i.dataset.src; obs.unobserve(i); } });
+    }, { root: fc, threshold: 0.1 });
+    fc.querySelectorAll('img').forEach(i => obs.observe(i));
+  };
+
+  $('flowPrev').addEventListener('click', () => $('flowContainer').scrollBy({ left:-220, behavior:'smooth' }));
+  $('flowNext').addEventListener('click', () => $('flowContainer').scrollBy({ left:220, behavior:'smooth' }));
+  $('continueBtn').addEventListener('click', () => {
+    const saved = localStorage.getItem('lastFolder');
+    const first = st.folders[saved] ? saved : Object.keys(st.folders)[0];
+    if (first) { st.folder = first; showMainGallery(first); }
+  });
+
+  /* ─ MAIN GALLERY ─ */
+  const showMainGallery = async folder => {
+    $('coverFlow').style.display = 'none';
+    const hdr = $('mainHeader');
+    hdr.style.display = 'flex';
+    document.body.className = localStorage.getItem('theme') || '';
+    $('themeToggle').textContent = document.body.classList.contains('light') ? '🌞' : '🌙';
+    buildFolderSelect(folder);
+    loadFolder(folder);
+  };
+
+  const buildFolderSelect = folder => {
+    const sel = $('folderSelect');
+    sel.innerHTML = '';
+    Object.entries(st.folders).forEach(([f, files], idx) => {
+      const o = el('option');
+      o.value = f;
+      o.textContent = idx === 0 ? `Gallery (${files.length})` : `Gallery ${idx + 1} (${files.length})`;
+      sel.appendChild(o);
+    });
+    sel.value = folder || Object.keys(st.folders)[0] || '';
+  };
+
+  const loadFolder = async folder => {
+    const grid = $('photoGrid');
+    grid.classList.add('fade-out');
+    setTimeout(() => grid.classList.remove('fade-out'), 400);
+    st.folder = folder;
+    st.selected.clear();
+    updateBulkBar();
+    localStorage.setItem('lastFolder', folder);
+
+    const raw = st.folders[folder] || [];
+    st.files = raw.map(f => {
+      if (f.includes('/')) {
+        const [sub, ...rest] = f.split('/');
+        return { folder, file: rest.join('/'), subfolder: sub, raw: f };
+      }
+      return { folder, file: f, raw: f };
+    });
+    applySort();
+    renderGallery();
+  };
+
+  /* ─ SEARCH & SORT ─ */
+  const getDisplayFiles = () => {
+    let arr = [...st.files];
+    if (st.searchQ) {
+      const q = st.searchQ.toLowerCase();
+      arr = arr.filter(item => (item.raw||item.file||'').toLowerCase().includes(q));
+    }
+    if (st.sortMode === 'name') arr.sort((a,b) => (a.file||'').localeCompare(b.file||''));
+    if (st.sortMode === 'name-desc') arr.sort((a,b) => (b.file||'').localeCompare(a.file||''));
+    return arr;
+  };
+  const applySort = () => {};
+
+  $('searchInput').addEventListener('input', e => {
+    st.searchQ = e.target.value.trim();
+    renderGallery();
+  });
+  $('sortToggle').addEventListener('click', () => {
+    const bar = $('sortBar');
+    bar.classList.toggle('visible');
+  });
+  document.querySelectorAll('.sort-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.sort-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      st.sortMode = chip.dataset.sort;
+      renderGallery();
+    });
+  });
+
+  /* ─ GRID SIZE ─ */
+  document.querySelectorAll('.grid-size-btns button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.grid-size-btns button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      st.gridSize = btn.dataset.size;
+      applyGridSize(st.gridSize);
+    });
+  });
+
+  /* ─ SELECT MODE ─ */
+  $('selectModeBtn').addEventListener('click', () => {
+    st.selectMode = !st.selectMode;
+    $('selectModeBtn').classList.toggle('active', st.selectMode);
+    if (!st.selectMode) { st.selected.clear(); updateBulkBar(); renderGallery(); }
+  });
+  const updateBulkBar = () => {
+    const bar = $('bulkBar');
+    if (st.selected.size > 0) {
+      bar.classList.add('visible');
+      $('bulkCount').textContent = `${st.selected.size} selected`;
+    } else {
+      bar.classList.remove('visible');
+    }
+  };
+  $('bulkClear').addEventListener('click', () => {
+    st.selected.clear(); updateBulkBar(); renderGallery();
+  });
+  $('bulkLike').addEventListener('click', () => {
+    st.selected.clear();
+    updateBulkBar();
+    renderGallery();
+  });
+  $('bulkDelete').addEventListener('click', () => {
+    toast('Delete disabled in web gallery');
+  });
+
+  /* ─ RENDER ─ */
+  const renderGallery = async () => {
+    const grid = $('photoGrid');
+    grid.innerHTML = '';
+    const files = getDisplayFiles();
+
+    if (!files.length) {
+      const empty = el('div', 'empty-state');
+      const ico = el('div', 'empty-icon'); ico.textContent = '📭';
+      const msg = el('p'); msg.textContent = st.searchQ ? 'Nothing found' : 'Folder is empty';
+      empty.appendChild(ico); empty.appendChild(msg);
+      grid.appendChild(empty);
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          const i = e.target.querySelector('img');
+          if (i && i.dataset.src) { i.src = i.dataset.src; delete i.dataset.src; }
+          obs.unobserve(e.target);
+        }
+      });
+    }, { rootMargin: '240px' });
+
+    files.forEach((item, idx) => {
+      const div = el('div', 'grid-item');
+      div.style.setProperty('--i', Math.min(idx, 30));
+      div.dataset.idx = idx;
+      div.setAttribute('tabindex', '0');
+      div.setAttribute('aria-label', item.raw || item.file);
+      if (st.selected.has(idx)) div.classList.add('selected');
+
+      const img = el('img');
+      img.dataset.src = imgUrl(item, 'grid');
+      img.alt = item.raw || item.file;
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.onerror = () => img.src = PLACEHOLDER;
+
+      const overlay = el('div', 'item-overlay');
+      const cap = st.captions[imgId(item)];
+      if (cap) {
+        const ct = el('div', 'item-caption-text');
+        ct.textContent = cap;
+        overlay.appendChild(ct);
+      }
+
+      div.appendChild(img); div.appendChild(overlay);
+
+      let pressTimer = null;
+      let longPressOpened = false;
+      div.addEventListener('pointerdown', () => {
+        longPressOpened = false;
+        pressTimer = setTimeout(() => {
+          longPressOpened = true;
+          showCtx(div, idx, null, true);
+        }, 550);
+      });
+      div.addEventListener('pointerup', () => clearTimeout(pressTimer));
+      div.addEventListener('pointercancel', () => clearTimeout(pressTimer));
+
+      div.addEventListener('click', e => {
+        if (longPressOpened) {
+          e.preventDefault();
+          longPressOpened = false;
+          return;
+        }
+        if (st.selectMode) {
+          if (st.selected.has(idx)) st.selected.delete(idx);
+          else st.selected.add(idx);
+          div.classList.toggle('selected', st.selected.has(idx));
+          updateBulkBar();
+        } else {
+          st.idx = idx;
+          openViewer();
+        }
+      });
+
+      div.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        if (!st.selectMode) { st.idx = idx; showCtx(div, idx, e); }
+      });
+      div.addEventListener('keydown', e => {
+        if ((e.key==='Enter'||e.key===' ') && !st.selectMode) { e.preventDefault(); st.idx = idx; openViewer(); }
+      });
+
+      frag.appendChild(div);
+      obs.observe(div);
+    });
+    grid.appendChild(frag);
+  };
+
+  /* ─ CONTEXT MENU ─ */
+  const showCtx = (div, idx, e, fromLongPress = false) => {
+    const menu = $('ctxMenu');
+    menu.style.display = 'block';
+    const files = getDisplayFiles();
+    const item = files[idx];
+    if (!item) return;
+    if (e) {
+      let x = e.clientX, y = e.clientY;
+      if (x + 160 > window.innerWidth) x = window.innerWidth - 165;
+      if (y + 160 > window.innerHeight) y = window.innerHeight - 165;
+      menu.style.left = x + 'px';
+      menu.style.top = y + 'px';
+    } else {
+      const r = div.getBoundingClientRect();
+      menu.style.left = Math.min(r.left + r.width/2, window.innerWidth - 165) + 'px';
+      menu.style.top = Math.min(r.top + r.height/2, window.innerHeight - 165) + 'px';
+    }
+    menu._idx = idx;
+  };
+  $('ctxMenu').addEventListener('click', e => {
+    const a = e.target.dataset.a; if (!a) return;
+    const files = getDisplayFiles();
+    const item = files[$('ctxMenu')._idx];
+    if (!item) return;
+    if (a === 'view') { st.idx = $('ctxMenu')._idx; openViewer(); }
+    if (a === 'download') downloadImg(item);
+    hideCtx();
+  });
+  const hideCtx = () => $('ctxMenu').style.display = 'none';
+  document.addEventListener('click', hideCtx);
+  document.addEventListener('keydown', e => { if (e.key==='Escape') { hideCtx(); closeViewer(); } });
+
+  /* ─ VIEWER ─ */
+  const openViewer = () => {
+    const files = getDisplayFiles();
+    const item = files[st.idx];
+    if (!item) return;
+    $('viewerImg').src = imgUrl(item, 'viewer');
+    $('viewerImg').alt = item.raw || item.file;
+    $('viewerTitle').textContent = item.raw || item.file;
+    $('viewer').style.display = 'flex';
+    $('viewer').className = 'visible';
+    document.body.style.overflow = 'hidden';
+    $('counter').textContent = `${st.idx + 1} / ${files.length}`;
+    updateViewerCaption();
+    updateLikeBtn();
+    st.imageScale = 1;
+    $('viewerImg').style.transform = 'scale(1)';
+    $('viewerImg').focus();
+    $('apProgress').style.display = 'none';
+    preloadNearby();
+  };
+
+  const closeViewer = () => {
+    stopAP();
+    $('viewer').className = 'closing';
+    document.body.style.overflow = '';
+    setTimeout(() => { $('viewer').style.display = 'none'; $('viewer').className = ''; }, 300);
+  };
+
+  const preloadNearby = () => {
+    const files = getDisplayFiles();
+    if (files.length < 2) return;
+    [-1, 1].forEach(offset => {
+      const next = files[(st.idx + offset + files.length) % files.length];
+      if (!next) return;
+      const preload = new Image();
+      preload.src = imgUrl(next, 'viewer');
+    });
+  };
+
+  const navigate = dir => {
+    const files = getDisplayFiles();
+    if (!files.length) return;
+    st.idx = (st.idx + dir + files.length) % files.length;
+    openViewer();
+    if (st.autoTimer) startAP();
+  };
+
+  $('viewerClose').addEventListener('click', closeViewer);
+  $('prevBtn').addEventListener('click', () => navigate(-1));
+  $('nextBtn').addEventListener('click', () => navigate(1));
+  $('sideLeft').addEventListener('click', () => navigate(-1));
+  $('sideRight').addEventListener('click', () => navigate(1));
+
+  // click outside image to close
+  $('viewer').addEventListener('click', e => {
+    if (e.target === $('viewer') || e.target === $('viewerImgWrap')) closeViewer();
+  });
+
+  /* ─ ZOOM ─ */
+  const setZoom = scale => {
+    st.imageScale = Math.max(0.5, Math.min(scale, 4));
+    $('viewerImg').style.transform = `scale(${st.imageScale})`;
+  };
+  $('zoomIn').addEventListener('click', () => setZoom(st.imageScale + 0.25));
+  $('zoomOut').addEventListener('click', () => setZoom(st.imageScale - 0.25));
+  $('zoomReset').addEventListener('click', () => setZoom(1));
+
+  $('viewerImg').addEventListener('dblclick', () => setZoom(st.imageScale > 1 ? 1 : 2));
+
+  $('viewerImg').addEventListener('wheel', e => {
+    e.preventDefault();
+    setZoom(st.imageScale + (e.deltaY > 0 ? -0.1 : 0.1));
+  }, { passive: false });
+
+  /* ─ TOUCH SWIPE ─ */
+  let swipeStartX = 0, swipeStartY = 0, pinchDist0 = 0;
+  $('viewerImg').addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      const t1 = e.touches[0], t2 = e.touches[1];
+      pinchDist0 = Math.hypot(t1.pageX - t2.pageX, t1.pageY - t2.pageY);
+      st.pinchScale = st.imageScale;
+    } else {
+      swipeStartX = e.changedTouches[0].screenX;
+      swipeStartY = e.changedTouches[0].screenY;
+    }
+  }, { passive: true });
+  $('viewerImg').addEventListener('touchmove', e => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const t1 = e.touches[0], t2 = e.touches[1];
+      const dist = Math.hypot(t1.pageX - t2.pageX, t1.pageY - t2.pageY);
+      setZoom(st.pinchScale * (dist / pinchDist0));
+    }
+  }, { passive: false });
+  $('viewerImg').addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].screenX - swipeStartX;
+    const dy = e.changedTouches[0].screenY - swipeStartY;
+    if (Math.abs(dy) > Math.abs(dx) && dy > 80 && st.imageScale <= 1) { closeViewer(); return; }
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { navigate(dx < 0 ? 1 : -1); }
+  }, { passive: true });
+
+  /* ─ AUTOPLAY ─ */
+  const startAP = () => {
+    clearInterval(st.autoTimer);
+    clearInterval(st.apInterval);
+    st.autoTimer = setInterval(() => navigate(1), st.AP_DUR);
+    $('autoPlayBtn').textContent = '⏸';
+    $('apProgress').style.display = 'block';
+    $('apBar').style.transition = 'none';
+    $('apBar').style.width = '0%';
+    setTimeout(() => {
+      $('apBar').style.transition = `width ${st.AP_DUR}ms linear`;
+      $('apBar').style.width = '100%';
+    }, 30);
+    st.apInterval = setInterval(() => {
+      $('apBar').style.transition = 'none';
+      $('apBar').style.width = '0%';
+      setTimeout(() => {
+        $('apBar').style.transition = `width ${st.AP_DUR}ms linear`;
+        $('apBar').style.width = '100%';
+      }, 30);
+    }, st.AP_DUR);
+  };
+  const stopAP = () => {
+    clearInterval(st.autoTimer); st.autoTimer = null;
+    clearInterval(st.apInterval); st.apInterval = null;
+    $('autoPlayBtn').textContent = '▶';
+    $('apProgress').style.display = 'none';
+  };
+  $('autoPlayBtn').addEventListener('click', () => {
+    st.autoTimer ? stopAP() : startAP();
+  });
+
+  /* ─ LIKE ─ */
+  const toggleLike = async () => {};
+  const updateLikeBtn = () => {};
+  $('likeBtn').addEventListener('click', () => {});
+
+  /* ─ DOWNLOAD ─ */
+  const downloadImg = item => {
+    const a = document.createElement('a');
+    a.href = imgUrl(item, 'download');
+    a.download = item.file;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast('Downloading…');
+  };
+  $('downloadBtn').addEventListener('click', () => {
+    const item = getDisplayFiles()[st.idx];
+    if (item) downloadImg(item);
+  });
+
+  /* ─ FULLSCREEN ─ */
+  $('fullscreenBtn').addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(()=>{});
+      $('fullscreenBtn').textContent = '✕⛶';
+    } else {
+      document.exitFullscreen?.();
+      $('fullscreenBtn').textContent = '⛶';
+    }
+  });
+
+  /* ─ CAPTION ─ */
+  const updateViewerCaption = () => {
+    const item = getDisplayFiles()[st.idx];
+    if (!item) return;
+    const cap = st.captions[imgId(item)] || '';
+    $('viewerCaption').textContent = cap || '+ Add caption';
+    $('viewerCaption').style.opacity = cap ? '1' : '0.4';
+    $('captionInputWrapper').classList.remove('visible');
+  };
+  $('viewerCaption').addEventListener('click', () => {
+    const item = getDisplayFiles()[st.idx];
+    if (!item) return;
+    $('captionInput').value = st.captions[imgId(item)] || '';
+    $('captionInputWrapper').classList.add('visible');
+    $('captionInput').focus();
+  });
+  $('captionSaveBtn').addEventListener('click', () => {
+    const item = getDisplayFiles()[st.idx];
+    if (!item) return;
+    const val = $('captionInput').value.trim();
+    if (val) st.captions[imgId(item)] = val;
+    else delete st.captions[imgId(item)];
+    localStorage.setItem('captions_v2', JSON.stringify(st.captions));
+    $('captionInputWrapper').classList.remove('visible');
+    updateViewerCaption();
+    toast('Caption saved');
+  });
+
+  /* ─ LIKES API ─ */
+  const loadLikes = async () => {
+    st.likes = {};
+    return st.likes;
+  };
+  const saveLikes = async obj => {
+    st.likes = obj || {};
+  };
+
+  /* ─ DELETE ─ */
+  const deleteFile = async () => {
+    toast('Delete disabled in web gallery');
+  };
+
+  /* ─ UPLOAD ─ */
+  $('uploadBtn').addEventListener('click', () => {
+    toast('Upload disabled in web gallery');
+  });
+  $('fileInput').addEventListener('change', async () => {
+    $('fileInput').value = '';
+  });
+
+  /* ─ SHUFFLE / MIX ALL ─ */
+  $('shuffleBtn').addEventListener('click', () => {
+    st.files = st.files.sort(() => Math.random() - 0.5);
+    renderGallery(); toast('Files shuffled 🔀');
+  });
+  $('mixAllBtn').addEventListener('click', () => {
+    let all = [];
+    Object.entries(st.folders).forEach(([folder, files]) => {
+      files.forEach(f => {
+        if (f.includes('/')) {
+          const [sub, ...rest] = f.split('/');
+          all.push({ folder, file: rest.join('/'), subfolder: sub, raw: f });
+        } else {
+          all.push({ folder, file: f, raw: f });
+        }
+      });
+    });
+    st.files = all.sort(() => Math.random() - 0.5).slice(0, MAX_MIX);
+    st.folder = null;
+    renderGallery(); toast(`Mixed ${st.files.length} files 🌐`);
+  });
+
+  /* ─ FOLDER SELECT ─ */
+  $('folderSelect').addEventListener('change', e => {
+    stopAP();
+    loadFolder(e.target.value);
+  });
+
+  /* ─ THEME ─ */
+  $('themeToggle').addEventListener('click', () => {
+    document.body.classList.toggle('light');
+    $('themeToggle').textContent = document.body.classList.contains('light') ? '🌞' : '🌙';
+    localStorage.setItem('theme', document.body.className);
+  });
+
+  /* ─ KEYBOARD ─ */
+  document.addEventListener('keydown', e => {
+    if ($('viewer').style.display === 'flex') {
+      if (e.key === 'ArrowRight') navigate(1);
+      if (e.key === 'ArrowLeft') navigate(-1);
+      if (e.key === ' ') { e.preventDefault(); st.autoTimer ? stopAP() : startAP(); }
+    }
+  });
+
+  // Drag-scroll cover flow
+  (() => {
+    const el = $('flowContainer');
+    let down = false, sx = 0, sl = 0;
+    el.addEventListener('mousedown', e => { down=true; sx=e.pageX-el.offsetLeft; sl=el.scrollLeft; });
+    window.addEventListener('mouseup', () => down=false);
+    window.addEventListener('mousemove', e => {
+      if (!down) return;
+      e.preventDefault();
+      el.scrollLeft = sl - (e.pageX - el.offsetLeft - sx) * 1.2;
+    });
+  })();
+
+})();
+</script>
+</body>
 </html>
