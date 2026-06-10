@@ -33,9 +33,10 @@ function renderPhotos(photos) {
     const card = template.content.firstElementChild.cloneNode(true);
     const image = card.querySelector("img");
     const label = card.querySelector("span");
+    const imageUrl = `${PHOTOS_URL}?file=${encodeURIComponent(photo.key)}`;
 
-    card.href = photo.url;
-    image.src = photo.url;
+    card.href = imageUrl;
+    image.src = imageUrl;
     image.alt = photo.title;
     label.textContent = `${photo.index}. ${photo.title}`;
     fragment.append(card);
