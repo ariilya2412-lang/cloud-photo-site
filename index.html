@@ -898,6 +898,8 @@
 <script>
 (() => {
   const API = 'https://functions.yandexcloud.net/d4ecqr4bqsf8ndkrh1qk';
+  const DEFAULT_HERO_FILE = '1/fotonafon.png';
+  const DEFAULT_HERO_URL = `${API}?file=${encodeURIComponent(DEFAULT_HERO_FILE)}`;
   const PLACEHOLDER = 'data:image/svg+xml;utf8,' + encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><rect width="100%" height="100%" fill="#1a1a22"/><text x="50%" y="50%" fill="#444" font-size="18" font-family="sans-serif" dominant-baseline="middle" text-anchor="middle">No image</text></svg>`
   );
@@ -958,20 +960,25 @@
     const g = $('photoGrid');
     g.className = g.className.replace(/size-\w+/, '') + ` size-${size}`;
   };
+  const applyHeroBackground = url => {
+    if (!url) return;
+    $('welcome-bg').style.backgroundImage = `url('${url}')`;
+    document.documentElement.style.setProperty('--hero-image', `url("${url}")`);
+  };
   const setWelcomeBackground = () => {
     const allFiles = Object.values(st.folders).flat();
     const preferredFile =
       allFiles.find(file => String(file).toLowerCase() === '1/fotonafon.png') ||
       allFiles.find(file => String(file).toLowerCase().includes('fotonafon')) ||
-      allFiles[0];
-    if (!preferredFile) return;
+      allFiles[0] ||
+      DEFAULT_HERO_FILE;
     const img = new Image();
     img.src = `${API}?file=${encodeURIComponent(preferredFile)}`;
-    img.onload = () => {
-      $('welcome-bg').style.backgroundImage = `url('${img.src}')`;
-      document.documentElement.style.setProperty('--hero-image', `url("${img.src}")`);
-    };
+    img.onload = () => applyHeroBackground(img.src);
+    img.onerror = () => applyHeroBackground(DEFAULT_HERO_URL);
   };
+
+  applyHeroBackground(DEFAULT_HERO_URL);
 
   /* ─ WELCOME ─ */
   $('startBtn').addEventListener('click', async () => {
