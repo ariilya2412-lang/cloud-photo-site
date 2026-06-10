@@ -1,0 +1,9 @@
+{
+  "appId": "com.ariilya.gallery",
+  "appName": "Gallery",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "iosScheme": "https"
+  }
+}

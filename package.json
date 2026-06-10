@@ -1,0 +1,27 @@
+{
+  "name": "photo-cloud-site",
+  "version": "1.0.0",
+  "description": "Simple static gallery that can display images from Yandex Object Storage.",
+  "main": "app.js",
+  "scripts": {
+    "sync:web": "node scripts/sync-web.mjs",
+    "sync:ios": "npm run sync:web && npx cap sync ios",
+    "open:ios": "npx cap open ios"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ariilya2412-lang/cloud-photo-site.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ariilya2412-lang/cloud-photo-site/issues"
+  },
+  "homepage": "https://github.com/ariilya2412-lang/cloud-photo-site#readme",
+  "dependencies": {
+    "@capacitor/cli": "^8.4.0",
+    "@capacitor/core": "^8.4.0",
+    "@capacitor/ios": "^8.4.0"
+  }
+}

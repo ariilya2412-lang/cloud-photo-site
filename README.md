@@ -32,3 +32,25 @@ The bucket now should be `secret1231`, and the same file names must be uploaded 
 ## GitHub Pages
 
 Push this folder to GitHub and enable Pages from the repository settings.
+
+## iPhone wrapper
+
+This repo also includes a Capacitor iOS wrapper so the gallery can be built as an iPhone app.
+
+Useful commands:
+
+```bash
+npm install
+npm run sync:ios
+npm run open:ios
+```
+
+## Unsigned iPA via GitHub Actions
+
+Workflow file:
+
+```text
+.github/workflows/ios-unsigned-ipa.yml
+```
+
+It installs dependencies, syncs the web bundle into `www/`, builds the iOS app on a macOS runner, and uploads an unsigned `.ipa` artifact named `gallery-unsigned-ipa`.
