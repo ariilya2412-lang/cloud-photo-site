@@ -1,13 +1,14 @@
 const gallery = document.getElementById("gallery");
 const photoCount = document.getElementById("photo-count");
 const template = document.getElementById("photo-template");
+const API_BASE_URL = window.GALLERY_API_BASE_URL || "";
 
 loadPhotos();
 
 async function loadPhotos() {
   try {
-    const response = await fetch("./photos.json");
-    if (!response.ok) throw new Error("Cannot load photos.json");
+    const response = await fetch(`${API_BASE_URL}/api/photos`);
+    if (!response.ok) throw new Error("Cannot load signed photo list");
 
     const photos = await response.json();
     renderPhotos(photos);

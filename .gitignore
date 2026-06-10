@@ -1,2 +1,6 @@
 .DS_Store
 Thumbs.db
+api/.env
+api/server-out.log
+api/server-err.log
+api/node_modules/
